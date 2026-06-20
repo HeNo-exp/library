@@ -1,18 +1,5 @@
---!nolint
---!nocheck
---!optimize 2
-
 --[[
-    @author Cascade UI
-    @name Cascade
-    @description A Luau UI library based on macOS Sequoia.
-    @license MIT License
-
-    @buildDate "2026-06-20T03:51:45.768925200+00:00"
-    @buildCfg "Task"
-    @buildVers "0.0.0"
-
-    This file was automatically generated with darklua, it is not intended for manual editing.
+    This script is a skidded version of https://github.com/cascadeui/Cascade. XD
 --]]
 
 __SH = { COMPINDEXES = {} }

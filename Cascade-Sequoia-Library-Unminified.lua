@@ -8,7 +8,7 @@
     @description A Luau UI library based on macOS Sequoia.
     @license MIT License
 
-    @buildDate "2026-06-20T13:00:51.799331Z"
+    @buildDate "2026-06-20T13:08:26.502877Z"
     @buildCfg "Task"
     @buildVers "0.0.0"
 
@@ -17699,14 +17699,28 @@ local creator = __DIST.d()
 		}),
 	}) :: Frame
 
-	-- Create Chart Canvas Frame
-	local chartFrame = create("Frame")({
+	-- Create Chart Canvas Frame (CanvasGroup for perfect circular clipping)
+	local chartFrame = create("CanvasGroup")({
 		Name = "ChartFrame",
 		BackgroundTransparency = 1,
 		Size = properties.Size,
 		LayoutOrder = 1,
+		BorderSizePixel = 0,
 		Parent = structures.Body.__instance,
-	}) :: Frame
+
+		create("UICorner")({
+			CornerRadius = UDim.new(1, 0),
+		}),
+		create("UIStroke")({
+			Name = "OuterStroke",
+			Thickness = 1,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			__dynamicKeys = {
+				Color = getThemeColor(self.Theme, {"Controls", "ViewBorder"}, Color3.fromRGB(255, 255, 255)),
+				Transparency = getThemeTransparency(self.Theme, {"Controls", "ViewBorder"}, 0.95),
+			},
+		}),
+	}) :: CanvasGroup
 
 	-- Create Legend container
 	local legendContainer = create("Frame")({
@@ -17726,7 +17740,7 @@ local creator = __DIST.d()
 	}) :: Frame
 
 	-- Create Segment Frames
-	local N = properties.SegmentStyle == "Solid" and 120 or 90
+	local N = 180 -- Using 180 segments for high-fidelity circular sweep
 	local segments = {}
 
 	for i = 1, N do
@@ -17756,6 +17770,38 @@ local creator = __DIST.d()
 		table.insert(segments, segment)
 	end
 
+	-- Inner Mask circle for Donut Chart style
+	local innerMask = nil
+	if properties.InnerRadiusRatio > 0 then
+		innerMask = create("Frame")({
+			Name = "InnerMask",
+			Size = UDim2.fromScale(properties.InnerRadiusRatio, properties.InnerRadiusRatio),
+			Position = UDim2.fromScale(0.5, 0.5),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BorderSizePixel = 0,
+			ZIndex = 5,
+			Parent = chartFrame,
+
+			__dynamicKeys = {
+				BackgroundColor3 = getThemeColor(self.Theme, {"Controls", "View"}, Color3.fromRGB(30, 30, 30)),
+				BackgroundTransparency = getThemeTransparency(self.Theme, {"Controls", "View"}, 0),
+			},
+
+			create("UICorner")({
+				CornerRadius = UDim.new(1, 0),
+			}),
+			create("UIStroke")({
+				Name = "InnerStroke",
+				Thickness = 1,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+				__dynamicKeys = {
+					Color = getThemeColor(self.Theme, {"Controls", "ViewBorder"}, Color3.fromRGB(255, 255, 255)),
+					Transparency = getThemeTransparency(self.Theme, {"Controls", "ViewBorder"}, 0.95),
+				},
+			}),
+		})
+	end
+
 	-- Function to update segment sizes on absolute size change
 	local function updateSizing()
 		local absSize = chartFrame.AbsoluteSize
@@ -17767,22 +17813,13 @@ local creator = __DIST.d()
 		if sizeY <= 0 then sizeY = 130 end
 
 		local radius = math.min(sizeX, sizeY) / 2
-		local outerRadius = radius
-		local innerRadius = radius * properties.InnerRadiusRatio
-		local thickness = outerRadius - innerRadius
-
-		if thickness <= 0 then
-			return
-		end
-
-		local arcLength = (2 * math.pi * outerRadius) / N
+		local arcLength = (2 * math.pi * radius) / N
 		local width = properties.SegmentStyle == "Solid" and (arcLength + 1.2) or math.max(1.5, arcLength * 0.6)
 
-		local anchorY = outerRadius / thickness
-
 		for _, segment in ipairs(segments) do
-			segment.Size = UDim2.fromOffset(width, thickness)
-			segment.AnchorPoint = Vector2.new(0.5, anchorY)
+			segment.Size = UDim2.fromOffset(width, radius + 2)
+			segment.AnchorPoint = Vector2.new(0.5, 1)
+			segment.Position = UDim2.fromScale(0.5, 0.5)
 		end
 	end
 

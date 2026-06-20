@@ -1,9 +1,4 @@
---[[
-    Cascade UI Library - 100% Full-Feature Master Integration Script
-    (모든 컴포넌트, 중첩 탭, 리액티브 로직, 커스텀 컴포넌트, 저장/복제 기능 수록)
---]]
 
---// 1. GitHub 최신 릴리즈로부터 라이브러리를 동적 로드합니다.
 local cascadeUrl = "https://raw.githubusercontent.com/HeNo-exp/library/refs/heads/main/Cascade-Sequoia-Library-Unminified.lua"
 local cascade = loadstring(game:HttpGet(cascadeUrl))()
 
@@ -83,14 +78,52 @@ local app = cascade.New({
 local recorder = cascade.AppRecorder.new(app)
 recorder:Start()
 
---// 5. 메인 윈도우 생성 (블러 효과 및 크기 조절 활성화)
+--// 2. 메인 애플리케이션 초기화
+local app = cascade.New({
+	WindowPill = false,            -- 모바일 최소화 복구용 필(Pill) UI 숨김
+	Theme = cascade.Themes.Dark,   -- 테마 설정 (Light / Dark)
+	Accent = cascade.Accents.Blue, -- 포인트 강조 색상 설정
+})
+--// 3. 메인 윈도우 생성 (사용 가능한 모든 매개변수 포함)
 local window = app:Window({
-	Title = "Cascade Sequoia",
-	Subtitle = "All-In-One API Master Integration Studio",
-	Size = services.UserInputService.TouchEnabled and UDim2.fromOffset(550, 325) or UDim2.fromOffset(850, 600),
-	Draggable = true,
-	Resizable = true,
-	UIBlur = true,
+	-- [Cascade 전용 창 설정]
+	Title = "My Premium Hub",                         -- 창 상단 대제목
+	Subtitle = "Premium script management console",    -- 창 상단 소제목 (없으면 숨김)
+	Searching = true,                                 -- 페이지 내부 검색 기능 활성화 여부
+	Draggable = true,                                 -- 드래그하여 창 이동 활성화 여부
+	Resizable = true,                                 -- 창 모서리를 드래그하여 크기 조절 활성화 여부
+	CanExit = true,                                   -- 우측 상단 닫기(X) 버튼 활성화 여부
+	CanMinimize = true,                               -- 우측 상단 최소화(-) 버튼 활성화 여부
+	CanZoom = true,                                   -- 우측 상단 최대화(+) 버튼 활성화 여부
+	Maximized = false,                                -- 처음 실행 시 최대화 상태 시작 여부
+	Minimized = false,                                -- 처음 실행 시 최소화 상태 시작 여부
+	Dropshadow = true,                                -- 창 외부 그림자(Dropshadow) 효과 여부
+	UIBlur = true,                                    -- 창 배경 아크릴/유리 질감 블러 효과 여부
+	
+	-- [Roblox Frame 공통 속성]
+	Size = UDim2.fromOffset(850, 530),                 -- 인증 완료 후 복구될 기본 창 크기
+	Position = UDim2.fromScale(0.5, 0.5),             -- 화면 상 창의 배치 위치
+	AnchorPoint = Vector2.new(0.5, 0.5),               -- 창의 기준점 (가운데 정렬)
+	ZIndex = 1,                                       -- 렌더링 우선순위 레이어 레이아웃 순서
+	Visible = true,                                   -- 창 노출 여부
+	
+	-- [빌트인 키 시스템 설정]
+	KeySystem = {
+		Service = "YOUR_SERVICE_NAME",                 -- JnKie 대시보드 내 서비스 이름
+		Identifier = "YOUR_USER_ID",                    -- JnKie 대시보드 내 유저 고유 ID (숫자 문자열)
+		Provider = "Mixed",                             -- 사용할 광고/체크포인트 프로바이더 이름 ("Mixed", "Linkvertise" 등)
+		OnVerified = function()
+			-- 키 검증 통과 후 실행될 콜백 함수
+			print("키 인증에 성공하여 메인 기능 잠금이 풀렸습니다!")
+			
+			-- 여기에 인증 완료 시 스포너 알림 등을 추가할 수 있습니다.
+			app:Notification({
+				Title = "Authenticated",
+				Subtitle = "환영합니다! 프리미엄 툴 사용 권한이 부여되었습니다.",
+				Duration = 5,
+			})
+		end,
+	}
 })
 
 -- RightControl 키를 누르면 최소화 토글

@@ -16334,8 +16334,6 @@ return function(self, properties: any)
 	local currentValue = properties.Value
 	local currentTransparency = properties.Transparency
 
-	print("[ColorPicker] Initializing with color:", currentValue, "transparency:", currentTransparency)
-
 	-- Preview button (the small color block in the row)
 	structures.Body = create("Frame")({
 		Name = "ColorPicker",
@@ -16366,9 +16364,9 @@ return function(self, properties: any)
 	structures.ColorButton = structures.Body:FindFirstChild("ColorButton") :: ImageButton
 
 	if structures.ColorButton then
-		print("[ColorPicker] Found ColorButton:", structures.ColorButton:GetFullName())
+		
 	else
-		warn("[ColorPicker] ColorButton not found under Body!")
+		
 	end
 
 	-- Popover state
@@ -16488,25 +16486,24 @@ return function(self, properties: any)
 
 	-- Function to open the popover picker dialog
 	local function openPopover()
-		print("[ColorPicker] openPopover() triggered!")
+
 		if popoverFrame then 
-			print("[ColorPicker] Popover frame already exists, returning.")
+		
 			return 
 		end
 
 		local ok, err = xpcall(function()
 			local screenGui = structures.Body:FindFirstAncestorOfClass("ScreenGui")
 			if not screenGui then
-				print("[ColorPicker] FindFirstAncestorOfClass(ScreenGui) is nil! Inspecting ancestors...")
+				
 				local curr = structures.Body.Parent
 				while curr do
-					print("  Ancestor:", curr.Name, "Class:", curr.ClassName)
+	
 					curr = curr.Parent
 				end
-				error("ScreenGui ancestor not found for ColorPicker! Ensure the UI is mounted in ScreenGui.")
+			
 			end
 
-			print("[ColorPicker] Found ScreenGui ancestor:", screenGui:GetFullName())
 
 			local originalColor = currentValue
 			local originalTransparency = currentTransparency
@@ -17173,7 +17170,7 @@ return function(self, properties: any)
 			panel.Parent = screenGui
 			popoverFrame = panel -- 로컬 변수에 보관
 
-			print("[ColorPicker] Popover frame positioned at:", posX - parentPosition.X, posY - parentPosition.Y, "and parented to:", panel.Parent:GetFullName())
+		
 
 			-- Listen for click outside
 			task.defer(function()
@@ -17192,7 +17189,7 @@ return function(self, properties: any)
 						local insideButton = pointInside(structures.ColorButton, mouse.X, adjustedY) or pointInside(structures.ColorButton, mouse.X, mouse.Y)
 
 						if not insidePopover and not insideButton and not isDragging then
-							print("[ColorPicker] Clicked outside, closing popover.")
+							
 							closePopover()
 							conn:Disconnect()
 						end
@@ -17204,9 +17201,6 @@ return function(self, properties: any)
 		end)
 
 		if not ok then
-			print("🔴 [ColorPicker] CRITICAL ERROR during openPopover()!")
-			print(err)
-			warn("[ColorPicker] Error during openPopover(): " .. tostring(err))
 			if popoverFrame then
 				pcall(function() popoverFrame:Destroy() end)
 				popoverFrame = nil
@@ -17215,7 +17209,7 @@ return function(self, properties: any)
 	end
 
 	-- Connect click handler
-	print("[ColorPicker] Connecting events (Activated, MouseButton1Down) for openPopover...")
+
 	structures.ColorButton.Activated:Connect(openPopover)
 	structures.ColorButton.MouseButton1Down:Connect(openPopover)
 

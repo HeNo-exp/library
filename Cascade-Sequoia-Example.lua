@@ -1,5 +1,6 @@
 --[[
     Cascade UI Library 1.4.0 - 100% Full Master Integration Script (with Tag & Gradient features)
+    v1.2
     
     [포함된 기능 목록]
     - 신규 태그 및 그라데이션 기능 (Window, PageSection, TitleStack 연동)

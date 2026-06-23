@@ -1,7 +1,8 @@
 --[[
-    Cascade UI Library 1.4.0 - 100% Full Master Integration Script
+    Cascade UI Library 1.4.0 - 100% Full Master Integration Script (with Tag & Gradient features)
     
     [포함된 기능 목록]
+    - 신규 태그 및 그라데이션 기능 (Window, PageSection, TitleStack 연동)
     - 내장형(Built-in) JnKie 키 시스템 연동
     - 창 속성 정밀 제어 (Draggable, UIBlur, Dropshadow 등 15종 옵션)
     - RegisterComponent를 이용한 커스텀 위젯(CustomCard) 제작
@@ -69,14 +70,16 @@ cascade.RegisterComponent("CustomCard", function(self, properties)
 	return cardFrame
 end)
 
---// 공통 UI 도우미 함수 (타이틀/서브타이틀이 포함된 좌우 1행 레이아웃 생성)
-local function titledRow(parent, title, subtitle)
+--// 공통 UI 도우미 함수 (타이틀/서브타이틀이 포함된 좌우 1행 레이아웃 생성 - 태그 매개변수 추가)
+local function titledRow(parent, title, subtitle, tagText, tagColor)
 	local row = parent:Row({
 		SearchIndex = title,
 	})
 	row:Left():TitleStack({
 		Title = title,
 		Subtitle = subtitle,
+		TitleTag = tagText,
+		TitleTagColor = tagColor,
 	})
 	return row
 end
@@ -88,7 +91,7 @@ local app = cascade.New({
 	Accent = cascade.Accents.Blue, -- 기본 파란색 악센트
 })
 
---// 4. 메인 윈도우 생성 (모든 매개변수 포함 & 빌트인 키 시스템)
+--// 4. 메인 윈도우 생성 (모든 매개변수 포함 & 빌트인 키 시스템 & 태그 추가)
 local window = app:Window({
 	-- [Cascade 전용 창 설정]
 	Title = "Cascade Sequoia Master",                 -- 창 상단 대제목
@@ -104,6 +107,15 @@ local window = app:Window({
 	Dropshadow = true,                                -- 창 외부 그림자(Dropshadow) 효과 여부
 	UIBlur = true,                                    -- 창 배경 아크릴/유리 질감 블러 효과 여부
 	
+	-- [신규 태그 기능 옵션]
+	TitleTag = "PREMIUM",                             -- 대제목 옆 태그 텍스트
+	TitleTagColor = Color3.fromRGB(255, 45, 85),      -- 단색 (핑크)
+	SubtitleTag = "V1.4.0",                           -- 소제목 옆 태그 텍스트
+	SubtitleTagColor = {                              -- 테이블 배열로 전달 시 그라데이션 처리 (핑크 -> 오렌지)
+		Color3.fromHex("#FF2D55"),
+		Color3.fromHex("#FF9500")
+	},
+	
 	-- [Roblox Frame 공통 속성]
 	Size = UDim2.fromOffset(850, 600),                -- 인증 완료 후 복구될 기본 창 크기
 	Position = UDim2.fromScale(0.5, 0.5),             -- 화면 상 창의 배치 위치
@@ -111,7 +123,7 @@ local window = app:Window({
 	ZIndex = 1,                                       -- 렌더링 우선순위
 	Visible = true,                                   -- 창 노출 여부
 	
-	-- [빌트인 키 시스템 설정 (JnKie API 기반)]
+	--[[ [빌트인 키 시스템 설정 (JnKie API 기반)]
 	KeySystem = {
 		Service = "YOUR_SERVICE_NAME",                 -- JnKie 대시보드 내 서비스 이름
 		Identifier = "YOUR_USER_ID",                   -- JnKie 대시보드 내 유저 고유 ID
@@ -126,7 +138,7 @@ local window = app:Window({
 				Duration = 5,
 			})
 		end,
-	}
+	} ]]
 })
 
 --// 5. 어플리케이션 세이브/로드 녹화기(AppRecorder) 구동
@@ -165,12 +177,14 @@ do -- Keybind & Color Picker
 	local rowKey = titledRow(form1, "Keybind Capture", "클릭 후 아무 키나 입력하여 단축키를 바인딩합니다.")
 	rowKey:Right():KeybindField({ Value = Enum.KeyCode.G, ValueChanged = function(self, value) print("New bind key:", value) end })
 
-	local rowColor = titledRow(form1, "Color Picker", "정교한 알파값 지원 RGB 팝업 컬러 픽커입니다.")
+	-- 컬러 픽커 라우에 파란색 단색 "POPUP" 태그 추가
+	local rowColor = titledRow(form1, "Color Picker", "정교한 알파값 지원 RGB 팝업 컬러 픽커입니다.", "POPUP", Color3.fromRGB(0, 122, 255))
 	rowColor:Right():ColorPicker({ Title = "Accent Tint Color", Value = Color3.fromRGB(0, 122, 255), Transparency = 0.1, ValueChanged = function(self, color, trans) print("Color changed:", color) end })
 end
 
 do -- Buttons
-	local rowBtn = titledRow(form1, "Action Buttons", "사용처에 어울리는 상태별 버튼입니다.")
+	-- 버튼 라우에 태그 추가 (색상을 비워두었으므로 기본 고급 블루 그라데이션 적용)
+	local rowBtn = titledRow(form1, "Action Buttons", "사용처에 어울리는 상태별 버튼입니다.", "NEW")
 	rowBtn:Right():Button({ Label = "Primary", State = "Primary", Pushed = function() print("Primary Pushed") end })
 	rowBtn:Right():Button({ Label = "Secondary", State = "Secondary", Pushed = function() print("Secondary Pushed") end })
 	rowBtn:Right():Button({ Label = "Destructive", State = "Destructive", Pushed = function() print("Destructive Pushed") end })
@@ -260,7 +274,15 @@ do -- 다양한 텍스트 라벨 (Label, RichText)
 end
 
 do -- 이미지 서피스 및 앞서 등록한 "커스텀 컴포넌트"
-	local graphicHeader = form3:PageSection({ Title = "Graphical Panels & Custom Cards" })
+	-- PageSection에 그린-민트 그라데이션 태그 추가
+	local graphicHeader = form3:PageSection({
+		Title = "Graphical Panels & Custom Cards",
+		TitleTag = "CUSTOM",
+		TitleTagColor = {
+			Color3.fromHex("#34C759"),
+			Color3.fromHex("#00C7B4")
+		}
+	})
 	local fGraph = graphicHeader:Form()
 
 	local rowSurface = fGraph:Row()

@@ -1,259 +1,264 @@
 --[[
-    Roblox Executor-Exclusive Icon Loader (Luau)
-    Author: Antigravity
-
-    Features:
-    - Automatically checks the executor's workspace directory for cached PNG icons.
-    - Automatically downloads missing icons from GitHub and caches them locally.
-    - Parses ":icon-name;color:" or ":icon-name:" syntax.
-    - Converts hex colors (e.g., "ff0000" or "#00ff00") and standard CSS names to Color3.
-    - Handles compatibility between different executors (Wave, Solara, Celery, Codex, etc.).
+    Cascade UI Library 1.4.0 - Ultra Lag-Free Infinite Viewer (2x Large Icons)
 --]]
 
-local IconLoader = {}
-IconLoader.__index = IconLoader
+--// 1. Cascade UI 라이브러리 동적 로드
+local cascade = loadstring(game:HttpGet("https://raw.githubusercontent.com/HeNo-exp/library/refs/heads/main/Cascade-Sequoia-Library-Unminified.lua"))()
 
--- Configuration (Adjust as needed)
-IconLoader.BaseUrl = "https://raw.githubusercontent.com/HeNo-exp/lucide/master/lucide_white_pngs/"
-IconLoader.LocalFolder = "lucide_icons"
-
--- In-memory cache to avoid redundant filesystem calls during a session
-local sessionCache = {}
-
--- Standard CSS color name to Color3 mapping
-local COLOR_MAP = {
-    white = Color3.fromRGB(255, 255, 255),
-    black = Color3.fromRGB(0, 0, 0),
-    red = Color3.fromRGB(239, 68, 68),
-    green = Color3.fromRGB(34, 197, 94),
-    blue = Color3.fromRGB(59, 130, 246),
-    yellow = Color3.fromRGB(234, 179, 8),
-    orange = Color3.fromRGB(249, 115, 22),
-    purple = Color3.fromRGB(168, 85, 247),
-    pink = Color3.fromRGB(236, 72, 153),
-    gray = Color3.fromRGB(107, 114, 128),
-    grey = Color3.fromRGB(107, 114, 128),
-    cyan = Color3.fromRGB(6, 182, 212),
-    magenta = Color3.fromRGB(217, 70, 239),
-    lime = Color3.fromRGB(132, 204, 22),
-    teal = Color3.fromRGB(20, 184, 166),
-    brown = Color3.fromRGB(120, 53, 4),
+local services = {
+	UserInputService = game:GetService("UserInputService"),
 }
 
--- Check if running in a supported executor environment
-local function checkExecutorSupport()
-    local missing = {}
-    if not isfile then table.insert(missing, "isfile") end
-    if not writefile then table.insert(missing, "writefile") end
-    if not makefolder then table.insert(missing, "makefolder") end
-    
-    local assetFuncExists = (getcustomasset ~= nil) or (getsynasset ~= nil)
-    if not assetFuncExists then
-        table.insert(missing, "getcustomasset / getsynasset")
-    end
-    
-    return #missing == 0, missing
+--// 전역 설정 변수
+local minimizeKeybind = Enum.KeyCode.RightControl
+local currentChunkPage = 1
+local chunkSize = 60 
+
+--// 2. 전체 대용량 에셋 기호 테이블을 인덱싱 가능한 배열로 재구조화
+local masterSymbolsArray = {}
+for iconName, assetId in pairs(cascade.Symbols) do
+	table.insert(masterSymbolsArray, { Name = iconName, Asset = assetId })
+end
+table.sort(masterSymbolsArray, function(a, b) return a.Name:lower() < b.Name:lower() end)
+
+--// ----------------------------------------------------
+--// 3. Custom Component 등록 (아이콘 2배 대형화 패치)
+--// ----------------------------------------------------
+cascade.RegisterComponent("CustomCard", function(self, properties)
+	local create = cascade.Creator.Create
+	
+	-- 격격화되고 심플한 초고속 모던 프레임 생성 (높이를 52 -> 68로 상향하여 대형 아이콘 수용) ★
+	local cardFrame = create("Frame")({
+		Name = properties.Name or "CustomCard",
+		Size = UDim2.new(1, 0, 0, 68), -- 높이 확장
+		BackgroundColor3 = Color3.fromRGB(34, 34, 38),
+		BorderSizePixel = 0,
+		Parent = properties.Parent or self.__container or self.__instance or self,
+		
+		create("UICorner")({ CornerRadius = UDim.new(0, 6) }),
+		create("UIPadding")({
+			PaddingLeft = UDim.new(0, 12),
+			PaddingRight = UDim.new(0, 12),
+			PaddingTop = UDim.new(0, 6),
+			PaddingBottom = UDim.new(0, 6),
+		}),
+
+		-- 1) 내부 배치: 좌측 아이콘 이미지 (오리지널 26px 대비 정확히 2배인 52px로 대형화) ★★★
+		create("Frame")({
+			Name = "ImageSurface",
+			Size = UDim2.fromOffset(52, 52), -- 52px로 2배 확대
+			Position = UDim2.new(0, 0, 0.5, -26), -- 세로축 정중앙 (-26 오프셋 보정)
+			BackgroundTransparency = 1,
+
+			create("Frame")({
+				Name = "Surface",
+				Size = UDim2.fromOffset(50, 50), -- 서피스 박스도 50px로 확대
+				Position = UDim2.fromScale(0.5, 0.5),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundColor3 = Color3.fromRGB(44, 44, 48),
+				BorderSizePixel = 0,
+
+				create("UICorner")({ CornerRadius = UDim.new(0, 10) }), -- 크기에 맞게 라운딩을 10px로 확대
+
+				create("ImageLabel")({
+					Name = "Image",
+					Size = UDim2.fromOffset(40, 40), -- 실제 이미지 크기를 40px로 2배 확대 ★
+					Position = UDim2.fromScale(0.5, 0.5),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Image = properties.Asset,
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					ImageColor3 = Color3.fromRGB(255, 255, 255),
+				})
+			})
+		})
+	})
+
+	-- 2) 내부 배치: 중앙 타이틀 텍스트 스택 (아이콘 크기에 겹치지 않게 가로 배치 보정)
+	self:TitleStack({
+		Title = properties.IconName,
+		Subtitle = "cascade.Symbols." .. properties.IconName,
+		Position = UDim2.new(0, 64, 0.5, -18), -- X 오프셋을 48에서 64로 우측 이동 ★
+		Parent = cardFrame.__instance,
+	})
+
+	-- 3) 내부 배치: 우측 고속 복사 버튼
+	self:Button({
+		Label = "Copy",
+		State = "Primary",
+		Position = UDim2.new(1, -90, 0.5, -14),
+		Size = UDim2.new(0, 80, 0, 28),
+		Parent = cardFrame.__instance,
+		Pushed = function()
+			if setclipboard then
+				setclipboard("cascade.Symbols." .. properties.IconName)
+				app:Notification({ 
+					Title = "Copied",
+					Subtitle = properties.IconName .. " 주소가 복사되었습니다.",
+					AppIcon = properties.Asset,
+					Duration = 2,
+				})
+			end
+		end
+	})
+
+	return cardFrame
+end)
+
+--// 4. 메인 프레임워크 초기화
+local app = cascade.New({
+	WindowPill = true,             -- 숨김용 알약 인프라 마운트
+	Theme = cascade.Themes.Dark,   -- 마코토 다크 오크 인터페이스
+	Accent = cascade.Accents.Blue, -- 틴트 컬러 바인딩
+})
+
+--// 5. 메인 윈도우 생성
+local window = app:Window({
+	Title = "SF Core Navigator",
+	Subtitle = "Total Database: " .. #masterSymbolsArray .. " Symbols",
+	Searching = true,
+	Draggable = true,
+	Resizable = true,
+	CanExit = true,
+	CanMinimize = true,
+	CanZoom = true,
+	UIBlur = true,
+	Dropshadow = true,
+	Size = UDim2.fromOffset(800, 600),
+	Position = UDim2.fromScale(0.5, 0.5),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+})
+
+--// 앱 상태 녹화 레코더 가동
+local recorder = cascade.AppRecorder.new(app)
+recorder:Start()
+
+-- 단축키 바인딩
+services.UserInputService.InputEnded:Connect(function(input, gameProcessedEvent)
+	if input.KeyCode == minimizeKeybind and not gameProcessedEvent then
+		window.Minimized = not window.Minimized
+	end
+end)
+
+
+-- =========================================================================
+-- [메인 컨트롤 엔진 구성]
+-- =========================================================================
+local matrixSection = window:Section({ Title = "Asset Matrix", Disclosure = false })
+local explorerTab = matrixSection:Tab({ Selected = true, Title = "Icon Directory", Icon = cascade.Symbols.squareSplit2x1 })
+local formMain = explorerTab:Form()
+
+-- 1) 상단 컨트롤러 레이아웃 폼
+local fPagination = formMain:PageSection({ Title = "Chunk Page Segment" }):Form()
+
+-- 2) 하단 실제 아이콘이 리렌더링될 메인 리스트 컨테이너 폼
+local listHeaderGroup = formMain:PageSection({ Title = "Initializing..." })
+local fList = listHeaderGroup:Form()
+
+-- [렉 원천 봉쇄 핵심 함수] 프레임 드랍 및 투명 로딩을 우회하는 페이징 처리기
+local function renderSymbolChunk(pageNumber)
+	-- 기존 렌더링된 요소 중 CustomCard만 안전하게 소멸
+	for _, child in ipairs(fList.__instance:GetChildren()) do
+		if child:IsA("GuiObject") and child.Name == "CustomCard" then
+			child:Destroy()
+		end
+	end
+	
+	local startIndex = ((pageNumber - 1) * chunkSize) + 1
+	local endIndex = math.min(startIndex + chunkSize - 1, #masterSymbolsArray)
+	
+	-- 상단 상태 지표 타이틀 문자열 변경
+	listHeaderGroup.Title = "Active Inventory Scope (Index: " .. startIndex .. " ~ " .. endIndex .. " )"
+	
+	-- 제한 임계값만큼 화면에 카드 배포
+	for i = startIndex, endIndex do
+		local symbolData = masterSymbolsArray[i]
+		if symbolData then
+			fList:CustomCard({
+				IconName = symbolData.Name,
+				Asset = symbolData.Asset,
+			})
+		end
+	end
 end
 
--- Helper to get custom asset API function
-local function getAssetID(path)
-    if getcustomasset then
-        return getcustomasset(path)
-    elseif getsynasset then
-        return getsynasset(path)
-    end
-    return ""
+do -- 상단 네비게이션 제어 유틸 바인딩
+	local rowControl = fPagination:Row()
+	rowControl:Left():TitleStack({
+		Title = "Chunk Controller",
+		Subtitle = "전체 " .. math.ceil(#masterSymbolsArray / chunkSize) .. "페이지 중에서 탐색할 덩어리를 선택합니다."
+	})
+	
+	-- 이전 페이지 버튼
+	rowControl:Right():Button({
+		Label = "◀ Prev",
+		State = "Secondary",
+		Pushed = function()
+			if currentChunkPage > 1 then
+				currentChunkPage = currentChunkPage - 1
+				renderSymbolChunk(currentChunkPage)
+			end
+		end
+	})
+	
+	-- 다음 페이지 버튼
+	rowControl:Right():Button({
+		Label = "Next ▶",
+		State = "Primary",
+		Pushed = function()
+			local maxPage = math.ceil(#masterSymbolsArray / chunkSize)
+			if currentChunkPage < maxPage then
+				currentChunkPage = currentChunkPage + 1
+				renderSymbolChunk(currentChunkPage)
+			end
+		end
+	})
+	
+	-- [고속 서칭 엔진] 인스턴스 과부하를 우회하는 강제 일치 탐색 텍스트 필드
+	local rowSearch = fPagination:Row()
+	rowSearch:Left():TitleStack({ Title = "Engine Keywords Match", Subtitle = "6천여 개의 수많은 아이콘 중에서 찾고 싶은 키워드를 매칭합니다." })
+	rowSearch:Right():TextField({
+		Placeholder = "검색 텍스트 입력 (예: battery, gear, folder)...",
+		TextChanged = function(self, text)
+			if text == "" then
+				renderSymbolChunk(currentChunkPage)
+				return
+			end
+			
+			local query = text:lower()
+			local matchesCount = 0
+			
+			for _, child in ipairs(fList.__instance:GetChildren()) do
+				if child:IsA("GuiObject") and child.Name == "CustomCard" then 
+					child:Destroy() 
+				end
+			end
+			
+			for _, data in ipairs(masterSymbolsArray) do
+				if data.Name:lower():find(query) then
+					matchesCount = matchesCount + 1
+					fList:CustomCard({ IconName = data.Name, Asset = data.Asset })
+					if matchesCount >= chunkSize then break end -- 검색 결과도 최대 청크사이즈까지만 표기하여 과부하 방지
+				end
+			end
+			listHeaderGroup.Title = "Filtered Query Results (Found: " .. matchesCount .. ")"
+		end
+	})
 end
 
--- Safe HttpGet wrapper
-local function httpGet(url)
-    if game:HttpGetAsync then
-        return game:HttpGetAsync(url)
-    elseif game:HttpGet then
-        return game:HttpGet(url)
-    elseif request then
-        local response = request({
-            Url = url,
-            Method = "GET"
-        })
-        if response and response.StatusCode == 200 then
-            return response.Body
-        end
-    end
-    error("HTTP Request library not available or request failed")
-end
+--// 최초 1페이지 고속 마운트 수행
+renderSymbolChunk(currentChunkPage)
 
--- Helper to parse hex colors
-local function parseHexColor(hexStr)
-    hexStr = hexStr:gsub("^#", "") -- strip leading '#' if present
-    if #hexStr == 3 then
-        local r = tonumber(hexStr:sub(1, 1), 16) or 15
-        local g = tonumber(hexStr:sub(2, 2), 16) or 15
-        local b = tonumber(hexStr:sub(3, 3), 16) or 15
-        return Color3.fromRGB(r * 17, g * 17, b * 17)
-    elseif #hexStr == 6 then
-        local r = tonumber(hexStr:sub(1, 2), 16) or 255
-        local g = tonumber(hexStr:sub(3, 4), 16) or 255
-        local b = tonumber(hexStr:sub(5, 6), 16) or 255
-        return Color3.fromRGB(r, g, b)
-    end
-    return nil
-end
+--// 리소스 해제 연동
+window.Destroying:Connect(function()
+	recorder:Stop()
+	table.clear(masterSymbolsArray)
+end)
 
--- Helper to parse a color modifier (could be CSS name or Hex)
-local function parseColorModifier(colorStr)
-    if not colorStr then return nil end
-    colorStr = colorStr:lower():gsub("%s+", "")
-    
-    -- Check if it matches a predefined CSS color name
-    if COLOR_MAP[colorStr] then
-        return COLOR_MAP[colorStr]
-    end
-    
-    -- Try to parse as HEX
-    local parsedColor = parseHexColor(colorStr)
-    if parsedColor then
-        return parsedColor
-    end
-    
-    -- Return nil if invalid color syntax
-    return nil
-end
-
--- Initial directory setup
-local folderCreated = false
-local function ensureFolder()
-    if folderCreated then return end
-    if makefolder then
-        pcall(function()
-            makefolder(IconLoader.LocalFolder)
-        end)
-        folderCreated = true
-    end
-end
-
---[[
-    Loads an icon and returns the Roblox Asset ID (string) and the parsed Color3 (or nil).
-    
-    Parameters:
-    - iconSyntax: String representation of the icon.
-      Can be:
-        - ":activity:" (with colons)
-        - "activity" (name only)
-        - ":bell;ff00ff:" (with color modifier)
-        - "bell;red" (name + color modifier)
-        
-    Returns:
-    - assetId (string): Ready to be assigned to ImageLabel.Image
-    - color (Color3 | nil): The parsed color, or nil if no color was provided.
---]]
-function IconLoader:Load(iconSyntax)
-    assert(type(iconSyntax) == "string", "Icon name must be a string")
-    
-    -- Trim leading and trailing colons if present
-    local cleanStr = iconSyntax:gsub("^:", ""):gsub(":$", "")
-    
-    -- Separate icon name and color (e.g., "bell;ff00ff" -> "bell", "ff00ff")
-    local parts = cleanStr:split(";")
-    local name = parts[1]:lower():gsub("%s+", "")
-    local colorStr = parts[2]
-    
-    -- Parse color
-    local imageColor = parseColorModifier(colorStr)
-    
-    -- Check in-memory session cache first
-    if sessionCache[name] then
-        return sessionCache[name], imageColor
-    end
-    
-    -- Check if we are running inside a compatible Roblox executor
-    local isSupported, missingAPIs = checkExecutorSupport()
-    if not isSupported then
-        warn("IconLoader Warning: Executor lacks filesystem capabilities (" .. table.concat(missingAPIs, ", ") .. "). Falling back to blank asset.")
-        return "", imageColor
-    end
-    
-    ensureFolder()
-    
-    local localFilePath = string.format("%s/%s.png", IconLoader.LocalFolder, name)
-    local assetId = ""
-    
-    -- 1. Check if the file is already cached in the local executor workspace
-    local success, exists = pcall(function()
-        return isfile(localFilePath)
-    end)
-    
-    if success and exists then
-        -- File is cached, load it
-        local assetSuccess, loadedAsset = pcall(function()
-            return getAssetID(localFilePath)
-        end)
-        if assetSuccess then
-            assetId = loadedAsset
-        end
-    else
-        -- 2. If not cached, download it from GitHub
-        local downloadUrl = string.format("%s%s.png", IconLoader.BaseUrl, name)
-        
-        print(string.format("[IconLoader] Downloading icon '%s' from remote repo...", name))
-        local downloadSuccess, fileData = pcall(function()
-            return httpGet(downloadUrl)
-        end)
-        
-        if downloadSuccess and fileData and #fileData > 0 then
-            if fileData:sub(1, 4) == "\137PNG" then
-                -- Save downloaded file to executor's workspace
-                local saveSuccess = pcall(function()
-                    writefile(localFilePath, fileData)
-                end)
-                
-                if saveSuccess then
-                    -- Load the newly saved file
-                    local assetSuccess, loadedAsset = pcall(function()
-                        return getAssetID(localFilePath)
-                    end)
-                    if assetSuccess then
-                        assetId = loadedAsset
-                    end
-                else
-                    warn("[IconLoader] Failed to write cache file: " .. localFilePath)
-                end
-            else
-                warn(string.format("[IconLoader] Downloaded data for '%s' is not a valid PNG (likely a 404 page). Not caching.", name))
-            end
-        else
-            warn(string.format("[IconLoader] Failed to download icon '%s' from URL: %s", name, downloadUrl))
-        end
-    end
-    
-    -- Save in memory to speed up future requests
-    if assetId ~= "" then
-        sessionCache[name] = assetId
-    end
-    
-    return assetId, imageColor
-end
-
---[[
-    A helper function to apply an icon directly to a Roblox ImageLabel or ImageButton.
-    
-    Parameters:
-    - imageInstance: Instance (ImageLabel or ImageButton)
-    - iconSyntax: String representation of the icon (e.g. ":activity;red:")
---]]
-function IconLoader:Apply(imageInstance, iconSyntax)
-    assert(typeof(imageInstance) == "Instance" and (imageInstance:IsA("ImageLabel") or imageInstance:IsA("ImageButton")), "Target must be an ImageLabel or ImageButton")
-    
-    local assetId, color = self:Load(iconSyntax)
-    if assetId and assetId ~= "" then
-        imageInstance.Image = assetId
-    end
-    if color then
-        imageInstance.ImageColor3 = color
-    else
-        -- If no color specified, reset to white (which shows the default white icon color)
-        imageInstance.ImageColor3 = Color3.new(1, 1, 1)
-    end
-end
-
-return IconLoader
+--// 시스템 복구 정상 런타임 완료 알림
+app:Notification({
+	Title = "Memory Restructured",
+	Subtitle = "성공! 디스플레이 메모리 제한 우회 및 로딩 패치가 완료되었습니다.",
+	AppIcon = cascade.Symbols.checkmark,
+	Duration = 4,
+})

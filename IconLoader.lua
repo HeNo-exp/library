@@ -201,21 +201,25 @@ function IconLoader:Load(iconSyntax)
         end)
         
         if downloadSuccess and fileData and #fileData > 0 then
-            -- Save downloaded file to executor's workspace
-            local saveSuccess = pcall(function()
-                writefile(localFilePath, fileData)
-            end)
-            
-            if saveSuccess then
-                -- Load the newly saved file
-                local assetSuccess, loadedAsset = pcall(function()
-                    return getAssetID(localFilePath)
+            if fileData:sub(1, 4) == "\137PNG" then
+                -- Save downloaded file to executor's workspace
+                local saveSuccess = pcall(function()
+                    writefile(localFilePath, fileData)
                 end)
-                if assetSuccess then
-                    assetId = loadedAsset
+                
+                if saveSuccess then
+                    -- Load the newly saved file
+                    local assetSuccess, loadedAsset = pcall(function()
+                        return getAssetID(localFilePath)
+                    end)
+                    if assetSuccess then
+                        assetId = loadedAsset
+                    end
+                else
+                    warn("[IconLoader] Failed to write cache file: " .. localFilePath)
                 end
             else
-                warn("[IconLoader] Failed to write cache file: " .. localFilePath)
+                warn(string.format("[IconLoader] Downloaded data for '%s' is not a valid PNG (likely a 404 page). Not caching.", name))
             end
         else
             warn(string.format("[IconLoader] Failed to download icon '%s' from URL: %s", name, downloadUrl))

@@ -1,6 +1,6 @@
 --!nolint
 --!nocheck
---!optimize 2
+--!optimize 555
 
 --[[
     @author Cascade UI
